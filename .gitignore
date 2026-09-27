@@ -1,0 +1,22 @@
+/node_modules
+/oh_modules
+/local.properties
+/.idea
+**/build
+/.hvigor
+.cxx
+/.clangd
+/.clang-format
+/.clang-tidy
+**/.test
+/.appanalyzer
+
+# 后端运行时数据（含测试聊天记录，首次运行自动生成种子数据）
+backend/data/
+**/node_modules
+
+# 本地 AI 助手配置
+/.trae
+
+# 模拟器系统镜像（数 GB，勿提交）
+/system-image

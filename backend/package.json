@@ -1,0 +1,8 @@
+{
+  "name": "sanda-market-server",
+  "version": "1.0.0",
+  "description": "杉达集市后端（Node.js 零依赖演示服务）",
+  "scripts": {
+    "start": "node server.js"
+  }
+}
