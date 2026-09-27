@@ -155,6 +155,10 @@ export class AppStore {
   @Trace sessions: ChatSession[] = [];
   @Trace offline: boolean = false;
 
+  // —— 隐私协议（首次启动必须同意，审核硬性要求） ——
+  @Trace showPrivacy: boolean = false; // 是否显示隐私政策遮罩
+  @Trace privacyViewOnly: boolean = false; // true=已同意用户从"我的"进入仅查看
+
   // —— 路由 ——
   readonly nav: NavPathStack = new NavPathStack();
   readonly ctrl: TabsController = new TabsController();
@@ -223,6 +227,46 @@ export class AppStore {
       prefs.flush();
     } catch (e) {
     }
+  }
+
+  // ---------------- 隐私协议 ----------------
+  // 启动时检查：未同意过则显示遮罩（同意后才允许 init 联网）
+  checkPrivacy(): void {
+    if (this.appContext === null) {
+      this.privacyViewOnly = false;
+      this.showPrivacy = true;
+      return;
+    }
+    try {
+      const prefs = preferences.getPreferencesSync(this.appContext, { name: 'sanda_market' });
+      const agreed: boolean = prefs.getSync('privacyAgreed', false) as boolean;
+      this.privacyViewOnly = agreed;
+      this.showPrivacy = !agreed;
+    } catch (e) {
+      this.privacyViewOnly = false;
+      this.showPrivacy = true;
+    }
+  }
+
+  // 同意并继续：写入本地记录；之后不再弹
+  agreePrivacy(): void {
+    this.privacyViewOnly = true;
+    this.showPrivacy = false;
+    if (this.appContext === null) {
+      return;
+    }
+    try {
+      const prefs = preferences.getPreferencesSync(this.appContext, { name: 'sanda_market' });
+      prefs.putSync('privacyAgreed', true);
+      prefs.flush();
+    } catch (e) {
+    }
+  }
+
+  // "我的"页查看入口
+  viewPrivacy(): void {
+    this.privacyViewOnly = true;
+    this.showPrivacy = true;
   }
 
   // ---------------- 查找 ----------------

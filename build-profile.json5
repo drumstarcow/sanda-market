@@ -1,6 +1,20 @@
 {
   "app": {
-    "signingConfigs": [],
+    "signingConfigs": [
+      {
+        "name": "default",
+        "type": "HarmonyOS",
+        "material": {
+          "storeFile": "D:/sanda-key/sanda.p12",
+          "storePassword": "0000001ADD6619DFA08A18668523F67598E60FFA6FA23154CDF240016480A390A29926AC6FDD82396844",
+          "keyAlias": "sanda",
+          "keyPassword": "0000001A31E8A3598DA733D810C2C21604809F183D7AEA892CA109B3C6232FA4E4BBFB0A386FB518A2A2",
+          "signAlg": "SHA256withECDSA",
+          "profile": "D:/sanda-key/sanda-releaseRelease.p7b",
+          "certpath": "D:/sanda-key/sanda-release.cer"
+        }
+      }
+    ],
     "products": [
       {
         "name": "default",

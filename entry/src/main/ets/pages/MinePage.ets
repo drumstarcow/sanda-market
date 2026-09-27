@@ -120,6 +120,10 @@ export struct MinePage {
           this.ActionRow('学生认证', store.me.verified ? '已认证' : '未认证', (): void => {
             store.go('certify');
           })
+          Divider().color(Theme.line).height(1)
+          this.ActionRow('隐私政策', '查看', (): void => {
+            store.viewPrivacy();
+          })
         }
         .backgroundColor(Theme.card)
         .borderRadius(12)
