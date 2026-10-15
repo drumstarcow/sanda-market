@@ -6,7 +6,7 @@ export class Theme {
   static readonly bg: string = '#F5F6F7';
   static readonly card: string = '#FFFFFF';
   static readonly text: string = '#1A1A1A';
-  static readonly sub: string = '#7A7F87';
+  static readonly sub: string = '#5C6470';
   static readonly line: string = '#ECEDEF';
   static readonly danger: string = '#D94838';
   static readonly dangerSoft: string = '#FDECEA';

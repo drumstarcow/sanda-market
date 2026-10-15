@@ -62,7 +62,7 @@ export struct EmptyTip {
 
   build() {
     Column({ space: 8 }) {
-      Text('—').fontSize(20).fontColor(Theme.line)
+      Text('—').fontSize(20).fontColor(Theme.sub)
       Text(this.text).fontSize(13).fontColor(Theme.sub)
     }
     .width('100%')

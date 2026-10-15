@@ -20,3 +20,13 @@ backend/data/
 
 # 模拟器系统镜像（数 GB，勿提交）
 /system-image
+
+# DevEco 模拟器本地实例配置（仅本机有效）
+/MateBook Pro*.ini
+/MateBook Pro/
+/Pura X View*.ini
+/Pura X View/
+lists.json
+phone_config.json
+privacy.json
+versionInfo.txt

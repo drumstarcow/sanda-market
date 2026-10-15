@@ -39,7 +39,8 @@ export default class EntryAbility extends UIAbility {
     });
 
     try {
-      this.context.getApplicationContext().setColorMode(ConfigurationConstant.ColorMode.COLOR_MODE_NOT_SET);
+      // 锁定浅色模式：App 界面为浅底深字设计，跟随系统深色会导致文字对比度不足（UX 检验 2.1.4.1 不通过）
+      this.context.getApplicationContext().setColorMode(ConfigurationConstant.ColorMode.COLOR_MODE_LIGHT);
     } catch (err) {
       hilog.error(DOMAIN, 'testTag', 'Failed to set colorMode. Cause: %{public}s', JSON.stringify(err));
     }
