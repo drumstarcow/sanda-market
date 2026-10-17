@@ -17,7 +17,20 @@ export struct CertifyPage {
   }
 
   private submit(): void {
-    store.certify(this.name, this.studentNo, this.college).then((err: string): void => {
+    // 客户端先行校验：拒绝无效信息直接提交
+    if (this.name.trim().length < 2 || this.name.trim().length > 20) {
+      this.toast('请输入真实姓名（2-20个字符）');
+      return;
+    }
+    if (!/^\d{8,12}$/.test(this.studentNo.trim())) {
+      this.toast('学号需为8-12位数字，请核对后重试');
+      return;
+    }
+    if (this.college.length === 0) {
+      this.toast('请选择所在学院');
+      return;
+    }
+    store.certify(this.name.trim(), this.studentNo.trim(), this.college).then((err: string): void => {
       if (err.length === 0) {
         this.toast('认证通过，欢迎加入杉达集市');
         store.nav.pop();

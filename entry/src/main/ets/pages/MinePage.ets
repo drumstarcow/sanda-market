@@ -113,7 +113,7 @@ export struct MinePage {
             this.toast(`你共发布 ${store.goods.filter((g): boolean => g.sellerId === store.me.id).length} 件内容`);
           })
           Divider().color(Theme.line).height(1)
-          this.ActionRow('黑名单管理', `${store.blacklist.length} 人`, (): void => {
+          this.ActionRow('黑名单管理', '拒收与解除', (): void => {
             store.go('blocks');
           })
           Divider().color(Theme.line).height(1)

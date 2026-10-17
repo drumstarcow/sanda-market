@@ -158,13 +158,6 @@ export struct ChatPage {
     });
   }
 
-  private demoMsg(): void {
-    store.demoMessage(store.pendingChatId).then((_err: string): void => {
-      this.showSheet = false;
-      this.checkGrew();
-    });
-  }
-
   @Builder
   StateBanner() {
     if (this.s().state === SessionState.RefusedByMe) {
@@ -299,15 +292,6 @@ export struct ChatPage {
         })
 
       Divider().color(Theme.line).height(1)
-
-      Text('模拟对方消息（演示隐私过滤）')
-        .fontSize(14)
-        .fontColor(Theme.blue)
-        .width('100%')
-        .padding(13)
-        .onClick(() => {
-          this.demoMsg();
-        })
     }
     .width('100%')
     .alignItems(HorizontalAlign.Start)

@@ -237,16 +237,6 @@ export struct DetailPage {
             .alignItems(HorizontalAlign.Start)
             .layoutWeight(1)
 
-            Text('收藏')
-              .fontSize(13)
-              .fontColor(Theme.primary)
-              .border({ width: 1, color: Theme.primary })
-              .borderRadius(20)
-              .padding({ left: 18, right: 18, top: 9, bottom: 9 })
-              .onClick(() => {
-                this.toast('已加入收藏（演示）');
-              })
-
             Text(this.actionLabel(this.item()))
               .fontSize(13)
               .fontWeight(FontWeight.Bold)
