@@ -14,7 +14,7 @@ export struct BlockListPage {
     const u = store.users.find((x: User): boolean => x.id === id);
     const fb = new User();
     fb.id = id;
-    fb.nickname = '杉达同学';
+    fb.nickname = '匿名同学';
     return u === undefined ? fb : u;
   }
 

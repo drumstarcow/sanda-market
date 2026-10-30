@@ -36,7 +36,7 @@ export struct HomePage {
     Column() {
       Column({ space: 8 }) {
         Row() {
-          Text('杉达集市')
+          Text('杉集')
             .fontSize(20)
             .fontWeight(FontWeight.Bold)
             .fontColor(Theme.text)
@@ -72,7 +72,7 @@ export struct HomePage {
 
         if (!store.me.verified) {
           Row({ space: 8 }) {
-            Text('未完成杉达学生认证：发布、接单、私聊受限')
+            Text('未完成学生认证：发布、接单、私聊受限')
               .fontSize(12)
               .fontColor(Theme.warn)
               .layoutWeight(1)

@@ -195,7 +195,7 @@ export struct DetailPage {
                       .fontWeight(FontWeight.Medium)
                       .fontColor(Theme.text)
                     if (store.findUser(this.item().sellerId).verified) {
-                      TagBadge({ label: '杉达认证' })
+                      TagBadge({ label: '学生认证' })
                     }
                   }
                   Text(`${store.findUser(this.item().sellerId).college} · 信用分 ${store.findUser(this.item().sellerId).credit} · ${store.creditLevel(store.findUser(this.item().sellerId).credit)}`)

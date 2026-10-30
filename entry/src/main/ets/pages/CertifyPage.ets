@@ -1,4 +1,4 @@
-// 杉达学生认证：学号校验 + 学院选择（学号脱敏展示，仅用于校验）
+// 学生认证：学号校验 + 学院选择（学号脱敏展示，仅用于校验）
 import { store } from '../common/AppStore';
 import { Theme } from '../common/Theme';
 import { Chip, PageHeader } from '../views/Widgets';
@@ -32,7 +32,7 @@ export struct CertifyPage {
     }
     store.certify(this.name.trim(), this.studentNo.trim(), this.college).then((err: string): void => {
       if (err.length === 0) {
-        this.toast('认证通过，欢迎加入杉达集市');
+        this.toast('认证通过，欢迎加入杉集');
         store.nav.pop();
       } else {
         this.toast(err);
@@ -44,7 +44,7 @@ export struct CertifyPage {
     NavDestination() {
       Column() {
         PageHeader({
-          title: '杉达学生认证',
+          title: '学生认证',
           onBack: (): void => {
             store.nav.pop();
           }
@@ -141,7 +141,7 @@ export struct CertifyPage {
                 .fontSize(13)
                 .fontWeight(FontWeight.Bold)
                 .fontColor(Theme.text)
-              Text('· 交易双方均为杉达在校学生，从源头减少校外诈骗')
+              Text('· 买卖双方均为认证在校学生，从源头减少校外诈骗')
                 .fontSize(12).fontColor(Theme.sub).width('100%')
               Text('· 认证后才能发布、接单、私聊，浏览不受限')
                 .fontSize(12).fontColor(Theme.sub).width('100%')

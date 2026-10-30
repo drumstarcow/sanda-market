@@ -83,7 +83,7 @@ export struct GoodsCard {
               .fontSize(13)
               .fontWeight(FontWeight.Medium)
               .fontColor(Theme.text)
-            TagBadge({ label: '杉达认证', fg: Theme.primary, bg: Theme.primarySoft })
+            TagBadge({ label: '学生认证', fg: Theme.primary, bg: Theme.primarySoft })
           }
           Text(`${store.findUser(this.item.sellerId).college} · 信用分 ${store.findUser(this.item.sellerId).credit}`)
             .fontSize(11)

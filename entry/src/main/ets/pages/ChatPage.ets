@@ -324,7 +324,7 @@ export struct ChatPage {
               .layoutWeight(1)
               .maxLines(1)
             if (this.peer().verified) {
-              TagBadge({ label: '杉达认证' })
+              TagBadge({ label: '学生认证' })
             }
             Text('⋯')
               .fontSize(16)

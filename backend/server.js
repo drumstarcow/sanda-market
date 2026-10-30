@@ -1,6 +1,6 @@
-// 杉达集市后端服务（零依赖，Node 内置模块）
+// 杉集后端服务（零依赖，Node 内置模块）
 // 启动：node server.js   （默认 0.0.0.0:3000，手机与电脑同一局域网即可访问）
-// 说明：演示用 JSON 文件存储；认证为简化版（X-User-Id 头），生产环境应替换为登录态/Token
+// 说明：JSON 文件存储；认证为简化版（X-User-Id 头），生产环境应替换为登录态/Token
 
 const http = require('http');
 const fs = require('fs');
@@ -67,7 +67,7 @@ function seedDb() {
   };
   return {
     users: [
-      { id: 'u1', nickname: '杉达小王', college: '信息科学与技术学院', verified: true, credit: 96, studentNoMasked: '23****17', hue: '#3172F0' },
+      { id: 'u1', nickname: '小王同学', college: '信息科学与技术学院', verified: true, credit: 96, studentNoMasked: '23****17', hue: '#3172F0' },
       { id: 'u2', nickname: '干饭小张', college: '商学院', verified: true, credit: 92, studentNoMasked: '24****53', hue: '#B7791F' },
       { id: 'u3', nickname: '跑腿老王', college: '教育学院', verified: true, credit: 94, studentNoMasked: '22****08', hue: '#0A9F58' },
       { id: 'u4', nickname: '学长阿凯', college: '艺术设计学院', verified: true, credit: 88, studentNoMasked: '21****66', hue: '#D94838' }
@@ -226,7 +226,7 @@ async function handle(req, res) {
         return send(res, 200, { user: userView(exist) });
       }
     }
-    const u = { id: nextId('u'), nickname: '杉达同学', college: '', verified: false, credit: 90, studentNoMasked: '', hue: '#0A9F58' };
+    const u = { id: nextId('u'), nickname: '匿名同学', college: '', verified: false, credit: 90, studentNoMasked: '', hue: '#0A9F58' };
     db.users.push(u);
     saveDb();
     return send(res, 200, { user: userView(u) });
@@ -476,5 +476,5 @@ http.createServer((req, res) => {
     send(res, 500, { error: String(e) });
   });
 }).listen(PORT, '0.0.0.0', () => {
-  console.log(`杉达集市后端已启动: http://0.0.0.0:${PORT}  (数据文件: ${DB_FILE})`);
+  console.log(`杉集后端已启动: http://0.0.0.0:${PORT}  (数据文件: ${DB_FILE})`);
 });

@@ -39,7 +39,7 @@ export struct MinePage {
                   .fontWeight(FontWeight.Bold)
                   .fontColor(Theme.text)
                 if (store.me.verified) {
-                  TagBadge({ label: '杉达认证' })
+                  TagBadge({ label: '学生认证' })
                 } else {
                   TagBadge({ label: '未认证', fg: Theme.warn, bg: Theme.warnSoft })
                 }
@@ -88,7 +88,7 @@ export struct MinePage {
           .padding({ top: 8 })
 
           if (!store.me.verified) {
-            Text('立即完成杉达学生认证')
+            Text('立即完成学生认证')
               .fontSize(14)
               .fontWeight(FontWeight.Bold)
               .fontColor(Color.White)
@@ -174,7 +174,7 @@ export struct MinePage {
             .fontWeight(FontWeight.Bold)
             .fontColor(Theme.text)
             .width('100%')
-          Text('1. 仅限杉达学生认证用户发布、接单与私聊。')
+          Text('1. 仅限学生认证用户发布、接单与私聊。')
             .fontSize(12).fontColor(Theme.sub).width('100%')
           Text('2. 聊天与发布内容中的手机号、微信、QQ、学号、银行卡会被自动隐藏。')
             .fontSize(12).fontColor(Theme.sub).width('100%')

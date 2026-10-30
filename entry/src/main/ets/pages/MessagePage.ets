@@ -83,7 +83,7 @@ export struct MessagePage {
                       .fontColor(Theme.text)
                       .maxLines(1)
                     if (store.findUser(s.peerId).verified) {
-                      TagBadge({ label: '杉达认证' })
+                      TagBadge({ label: '学生认证' })
                     }
                     Text(`信用分 ${store.findUser(s.peerId).credit}`)
                       .fontSize(10)

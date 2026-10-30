@@ -170,7 +170,7 @@ export class AppStore {
   private inited: boolean = false;
 
   constructor() {
-    this.me.nickname = '杉达同学';
+    this.me.nickname = '匿名同学';
   }
 
   // ---------------- 初始化 ----------------
@@ -281,7 +281,7 @@ export class AppStore {
     }
     const ghost = new User();
     ghost.id = id;
-    ghost.nickname = '杉达同学';
+    ghost.nickname = '匿名同学';
     return ghost;
   }
 
@@ -312,13 +312,16 @@ export class AppStore {
 
   // ---------------- 本地缓存维护 ----------------
   private applyUser(u: ServerUser): void {
-    this.me.id = u.id;
-    this.me.nickname = u.nickname;
-    this.me.college = u.college;
-    this.me.verified = u.verified;
-    this.me.credit = u.credit;
-    this.me.studentNoMasked = u.studentNoMasked;
-    this.me.hue = u.hue;
+    // 构建新对象整体替换：引用变更必然触发 @Trace me 刷新，避免逐字段赋值在部分场景下 UI 不更新
+    const nu = new User();
+    nu.id = u.id;
+    nu.nickname = u.nickname;
+    nu.college = u.college;
+    nu.verified = u.verified;
+    nu.credit = u.credit;
+    nu.studentNoMasked = u.studentNoMasked;
+    nu.hue = u.hue;
+    this.me = nu;
     this.cacheUser(u);
   }
 

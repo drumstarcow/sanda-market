@@ -59,6 +59,7 @@ export struct PublishPage {
 
   // 求助
   @Local rewardText: string = '';
+  @Local formAlive: boolean = true; // 发布成功后短暂置 false 重建表单，确保输入框彻底清空
 
   private kind(): GoodsKind {
     return this.options[this.pubIdx].kind;
@@ -171,6 +172,7 @@ export struct PublishPage {
         this.toast(err);
         return;
       }
+      this.formAlive = false; // 先销毁表单子树，避免 TextInput 编辑态残留旧内容
       this.title = '';
       this.course = '';
       this.desc = '';
@@ -180,6 +182,16 @@ export struct PublishPage {
       this.tastes = [];
       this.pieces = 1;
       this.weightText = '';
+      this.condIdx = 1;
+      this.wanted = false;
+      this.fromPoint = '';
+      this.toPoint = '';
+      this.window = '';
+      this.tasteNote = '';
+      this.pkgSize = 'M';
+      setTimeout((): void => {
+        this.formAlive = true;
+      }, 120);
       this.toast(`发布成功${tipWord}`);
       store.switchTab(0);
     });
@@ -283,7 +295,7 @@ export struct PublishPage {
   build() {
     if (!store.me.verified) {
       Column({ space: 14 }) {
-        EmptyTip({ text: '完成杉达学生认证后即可发布' })
+        EmptyTip({ text: '完成学生认证后即可发布' })
         Text('去认证')
           .fontSize(14)
           .fontWeight(FontWeight.Bold)
@@ -305,6 +317,7 @@ export struct PublishPage {
     } else {
       Column() {
         Scroll() {
+          if (this.formAlive) {
           Column() {
             Text('发布')
               .fontSize(20)
@@ -508,6 +521,7 @@ export struct PublishPage {
           .padding(16)
           .width('100%')
           .alignItems(HorizontalAlign.Start)
+          }
         }
         .scrollBar(BarState.Off)
         .width('100%')
