@@ -3,6 +3,8 @@
 // 说明：JSON 文件存储；认证为简化版（X-User-Id 头），生产环境应替换为登录态/Token
 
 const http = require('http');
+const https = require('https');
+const crypto = require('crypto');
 const fs = require('fs');
 const path = require('path');
 
@@ -77,6 +79,72 @@ function sendSmsCode(phone, code) {
   // mock 模式：仅打印日志，验证码随接口响应返回用于调试
   console.log(`[sms] mock send to ${phone}: code=${code}`);
   return true;
+}
+
+// ---------------- 运营商本机号码校验（阿里云号码认证服务 PNVS） ----------------
+// 凭据通过环境变量注入（不入库不进 git）：PNVS_AK_ID / PNVS_AK_SECRET
+// SMS_PROVIDER=pnvs 时 App 端使用运营商本机校验；mock 时走验证码路径（模拟器调试）
+const PNVS_AK_ID = process.env.PNVS_AK_ID || '';
+const PNVS_AK_SECRET = process.env.PNVS_AK_SECRET || '';
+
+function pctEnc(s) {
+  return encodeURIComponent(String(s)).replace(/\+/g, '%20').replace(/\*/g, '%2A').replace(/%7E/g, '~');
+}
+
+function httpsPostQuery(url, cb, timeoutMs) {
+  const u = new URL(url);
+  const req = https.request({
+    hostname: u.hostname,
+    path: u.pathname + u.search,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'Content-Length': 0 }
+  }, (r) => {
+    let raw = '';
+    r.on('data', (d) => { raw += d; });
+    r.on('end', () => {
+      try { cb(null, JSON.parse(raw)); } catch (e) { cb(e); }
+    });
+  });
+  req.setTimeout(timeoutMs || 6000, () => req.destroy(new Error('timeout')));
+  req.on('error', (e) => cb(e));
+  req.end();
+}
+
+// 调阿里云 Dypnsapi.VerifyMobile：核验 token 对应的本机号与 phone 是否一致
+function pnvsVerify(phone, token) {
+  return new Promise((resolve) => {
+    if (!PNVS_AK_ID || !PNVS_AK_SECRET) {
+      return resolve({ ok: false, error: '服务端未配置号码认证凭据' });
+    }
+    const params = {
+      AccessKeyId: PNVS_AK_ID,
+      AccessCode: token,
+      Action: 'VerifyMobile',
+      Format: 'JSON',
+      PhoneNumber: phone,
+      RegionId: 'cn-hangzhou',
+      SignatureMethod: 'HMAC-SHA1',
+      SignatureNonce: crypto.randomUUID(),
+      SignatureVersion: '1.0',
+      Timestamp: new Date().toISOString().replace(/\.\d{3}Z$/, 'Z'),
+      Version: '2017-05-25'
+    };
+    const keys = Object.keys(params).sort();
+    const qs = keys.map((k) => pctEnc(k) + '=' + pctEnc(params[k])).join('&');
+    const sts = 'POST&%2F&' + pctEnc(qs);
+    const sig = crypto.createHmac('sha1', PNVS_AK_SECRET + '&').update(sts).digest('base64');
+    const url = 'https://dypnsapi.aliyuncs.com/?Signature=' + pctEnc(sig) + '&' + qs;
+    httpsPostQuery(url, (err, data) => {
+      if (err || !data) {
+        return resolve({ ok: false, error: '号码校验服务异常，请稍后再试' });
+      }
+      if (data.Code === 'OK') {
+        const vr = data.GateVerifyResultDTO && data.GateVerifyResultDTO.VerifyResult;
+        return resolve({ ok: vr === 'PASS' });
+      }
+      resolve({ ok: false, error: '号码校验未通过（' + String(data.Code) + '）' });
+    }, 6000);
+  });
 }
 
 // ---------------- 存储 ----------------
@@ -251,13 +319,13 @@ async function handle(req, res) {
     if (body.id) {
       const exist = db.users.find((u) => u.id === body.id);
       if (exist) {
-        return send(res, 200, { user: userView(exist) });
+        return send(res, 200, { user: userView(exist), authMode: SMS_PROVIDER });
       }
     }
     const u = { id: nextId('u'), nickname: '匿名同学', college: '', verified: false, credit: 90, studentNoMasked: '', phoneMasked: '', hue: '#0A9F58' };
     db.users.push(u);
     saveDb();
-    return send(res, 200, { user: userView(u) });
+    return send(res, 200, { user: userView(u), authMode: SMS_PROVIDER });
   }
 
   // 发送短信验证码（实名核验第一步，服务端强制防刷）
@@ -296,7 +364,7 @@ async function handle(req, res) {
     return send(res, 200, resp);
   }
 
-  // 学生认证（含手机号验证码实名核验）
+  // 学生认证（实名核验：pnvs=运营商本机号码校验；mock=短信验证码调试）
   if (p === '/api/auth/certify' && method === 'POST') {
     if (!me) {
       return send(res, 401, { error: '请先获取身份' });
@@ -305,16 +373,36 @@ async function handle(req, res) {
     const sno = String(body.studentNo || '').trim();
     const college = String(body.college || '').trim();
     const phone = String(body.phone || '').trim();
+    const pnvsToken = String(body.pnvsToken || '').trim();
     const smsCode = String(body.smsCode || '').trim();
     if (!/^1[3-9]\d{9}$/.test(phone)) {
       return send(res, 400, { error: '请输入正确的11位手机号' });
     }
-    const entry = smsCodes.get(phone);
-    if (!entry || entry.exp < Date.now()) {
-      return send(res, 400, { error: '验证码已过期，请重新获取' });
-    }
-    if (entry.code !== smsCode) {
-      return send(res, 400, { error: '验证码不正确' });
+    if (pnvsToken.length > 0) {
+      // 运营商本机号码校验路径（生产/真机）：服务端向阿里云核验 token 与手机号一致性
+      const ipC = req.socket.remoteAddress || 'unknown';
+      const ilistC = pruneTs(ipSendLog.get(ipC) || [], 3600 * 1000);
+      if (ilistC.length >= IP_HOUR_LIMIT) {
+        return send(res, 429, { error: '操作过于频繁，请稍后再试' });
+      }
+      ilistC.push(Date.now());
+      ipSendLog.set(ipC, ilistC);
+      const vr = await pnvsVerify(phone, pnvsToken);
+      if (!vr.ok) {
+        return send(res, 400, { error: vr.error || '本机号码校验未通过' });
+      }
+    } else if (SMS_PROVIDER === 'pnvs') {
+      return send(res, 400, { error: '请完成本机号码校验后再提交认证' });
+    } else {
+      // 短信验证码路径（mock 调试）
+      const entry = smsCodes.get(phone);
+      if (!entry || entry.exp < Date.now()) {
+        return send(res, 400, { error: '验证码已过期，请重新获取' });
+      }
+      if (entry.code !== smsCode) {
+        return send(res, 400, { error: '验证码不正确' });
+      }
+      smsCodes.delete(phone); // 验证码一次性使用
     }
     if (name.length < 2) {
       return send(res, 400, { error: '请输入真实姓名' });
@@ -330,7 +418,6 @@ async function handle(req, res) {
     me.studentNoMasked = `${sno.substring(0, 2)}****${sno.substring(sno.length - 2)}`;
     me.phoneMasked = `${phone.substring(0, 3)}****${phone.substring(7)}`;
     me.credit = Math.min(100, me.credit + 2);
-    smsCodes.delete(phone); // 验证码一次性使用
     saveDb();
     return send(res, 200, { user: userView(me) });
   }

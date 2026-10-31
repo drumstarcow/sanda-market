@@ -5,6 +5,8 @@
   "main": "",
   "author": "",
   "license": "",
-  "dependencies": {}
+  "dependencies": {
+    "numberauth_standard": "file:./libs/auth_number_product-v2.0.25-log-online-standard-release.har"
+  }
 }
 

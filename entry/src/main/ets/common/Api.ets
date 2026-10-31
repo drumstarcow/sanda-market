@@ -78,7 +78,8 @@ export interface CertifyBody {
   studentNo: string;
   college: string;
   phone: string;
-  smsCode: string;
+  smsCode?: string;
+  pnvsToken?: string;
 }
 
 export interface SendCodeBody {
@@ -124,6 +125,7 @@ interface ApiErrorResp {
 
 export interface UserResp {
   user: ServerUser;
+  authMode?: string;
 }
 
 export interface GoodsResp {

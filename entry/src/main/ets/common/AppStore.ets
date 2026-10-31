@@ -156,6 +156,9 @@ export class AppStore {
   @Trace sessions: ChatSession[] = [];
   @Trace offline: boolean = false;
 
+  // —— 实名核验模式：pnvs=运营商本机号码校验（真机）；mock=短信验证码（模拟器调试） ——
+  @Trace authMode: string = 'mock';
+
   // —— 隐私协议（首次启动必须同意，审核硬性要求） ——
   @Trace showPrivacy: boolean = false; // 是否显示隐私政策遮罩
   @Trace privacyViewOnly: boolean = false; // true=已同意用户从"我的"进入仅查看
@@ -185,6 +188,9 @@ export class AppStore {
       const r1 = await Api.guest(this.pendingUserId);
       Api.userId = r1.user.id;
       this.applyUser(r1.user);
+      if (r1.authMode !== undefined && r1.authMode.length > 0) {
+        this.authMode = r1.authMode;
+      }
       this.saveUserId(r1.user.id);
       const rg = await Api.getGoods();
       const goods: GoodsItem[] = [];
@@ -434,7 +440,7 @@ export class AppStore {
     this.go('chat');
   }
 
-  // ---------------- 认证（含手机号验证码实名核验） ----------------
+  // ---------------- 认证（实名核验） ----------------
   async sendCode(phone: string): Promise<string> {
     const p = phone.trim();
     if (!/^1[3-9]\d{9}$/.test(p)) {
@@ -444,7 +450,7 @@ export class AppStore {
       const body: SendCodeBody = { phone: p };
       const resp = await Api.sendCode(body);
       if (resp.devCode !== undefined && resp.devCode.length > 0) {
-        // 调试模式：服务端直接回传验证码（接入真实短信后不再下发）
+        // 调试模式：服务端直接回传验证码（模拟器调试路径）
         return `验证码已发送（调试码 ${resp.devCode}）`;
       }
       return '';
@@ -453,12 +459,13 @@ export class AppStore {
     }
   }
 
-  async certify(name: string, studentNo: string, college: string, phone: string, smsCode: string): Promise<string> {
+  // codeOrToken：mock=短信验证码；pnvs=运营商本机校验返回的 token
+  async certify(name: string, studentNo: string, college: string, phone: string, codeOrToken: string, isPnvs: boolean): Promise<string> {
     const p = phone.trim();
     if (!/^1[3-9]\d{9}$/.test(p)) {
       return '请输入正确的11位手机号';
     }
-    if (smsCode.trim().length !== 6) {
+    if (!isPnvs && codeOrToken.trim().length !== 6) {
       return '请输入6位验证码';
     }
     if (name.trim().length < 2) {
@@ -471,8 +478,15 @@ export class AppStore {
     if (college.length === 0) {
       return '请选择所在学院';
     }
+    const body: CertifyBody = {
+      name: name.trim(),
+      studentNo: sno,
+      college: college,
+      phone: p,
+      smsCode: isPnvs ? undefined : codeOrToken.trim(),
+      pnvsToken: isPnvs ? codeOrToken.trim() : undefined
+    };
     try {
-      const body: CertifyBody = { name: name.trim(), studentNo: sno, college: college, phone: p, smsCode: smsCode.trim() };
       const resp = await Api.certify(body);
       this.applyUser(resp.user);
       return '';
