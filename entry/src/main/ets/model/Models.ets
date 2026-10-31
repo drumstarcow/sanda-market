@@ -8,6 +8,7 @@ export class User {
   @Trace verified: boolean = false;
   @Trace credit: number = 90;
   @Trace studentNoMasked: string = '';
+  @Trace phoneMasked: string = '';
   @Trace hue: string = '#0A9F58';
 }
 

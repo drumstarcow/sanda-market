@@ -11,6 +11,7 @@ export interface ServerUser {
   verified: boolean;
   credit: number;
   studentNoMasked: string;
+  phoneMasked: string;
   hue: string;
 }
 
@@ -76,6 +77,17 @@ export interface CertifyBody {
   name: string;
   studentNo: string;
   college: string;
+  phone: string;
+  smsCode: string;
+}
+
+export interface SendCodeBody {
+  phone: string;
+}
+
+export interface SendCodeResp {
+  ok: boolean;
+  devCode?: string;
 }
 
 export interface PublishBody {
@@ -208,6 +220,14 @@ export class Api {
 
   static async certify(body: CertifyBody): Promise<UserResp> {
     return Api.post<CertifyBody, UserResp>('/api/auth/certify', body);
+  }
+
+  static async sendCode(body: SendCodeBody): Promise<SendCodeResp> {
+    return Api.post<SendCodeBody, SendCodeResp>('/api/auth/sms-code', body);
+  }
+
+  static async getUser(id: string): Promise<UserResp> {
+    return Api.get<UserResp>(`/api/users/${id}`);
   }
 
   static async getGoods(): Promise<GoodsListResp> {

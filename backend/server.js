@@ -56,6 +56,29 @@ function hintOf(text) {
   return labels.join('、');
 }
 
+// ---------------- 短信验证码（实名核验） ----------------
+// SMS_PROVIDER: mock=开发调试（响应带 devCode）；aliyun=生产（接入阿里云短信，签名"杉集"）
+const SMS_PROVIDER = process.env.SMS_PROVIDER || 'mock';
+const SMS_TTL = 5 * 60 * 1000;        // 验证码有效期 5 分钟
+const SMS_GAP = 60 * 1000;            // 同一号码两次发码最小间隔
+const SMS_DAY_LIMIT = 10;             // 同一号码每日上限
+const IP_HOUR_LIMIT = 20;             // 同一 IP 每小时上限
+const smsCodes = new Map();           // phone -> {code, exp}
+const smsSendLog = new Map();         // phone -> [ts]
+const ipSendLog = new Map();          // ip -> [ts]
+
+function pruneTs(list, windowMs) {
+  const now = Date.now();
+  return list.filter((t) => now - t < windowMs);
+}
+
+function sendSmsCode(phone, code) {
+  // 生产模式：接入阿里云短信后在此调用 SDK 发送（签名"杉集"、验证码模板）
+  // mock 模式：仅打印日志，验证码随接口响应返回用于调试
+  console.log(`[sms] mock send to ${phone}: code=${code}`);
+  return true;
+}
+
 // ---------------- 存储 ----------------
 let db = null;
 
@@ -67,10 +90,10 @@ function seedDb() {
   };
   return {
     users: [
-      { id: 'u1', nickname: '小王同学', college: '信息科学与技术学院', verified: true, credit: 96, studentNoMasked: '23****17', hue: '#3172F0' },
-      { id: 'u2', nickname: '干饭小张', college: '商学院', verified: true, credit: 92, studentNoMasked: '24****53', hue: '#B7791F' },
-      { id: 'u3', nickname: '跑腿老王', college: '教育学院', verified: true, credit: 94, studentNoMasked: '22****08', hue: '#0A9F58' },
-      { id: 'u4', nickname: '学长阿凯', college: '艺术设计学院', verified: true, credit: 88, studentNoMasked: '21****66', hue: '#D94838' }
+      { id: 'u1', nickname: '小王同学', college: '信息科学与技术学院', verified: true, credit: 96, studentNoMasked: '23****17', phoneMasked: '138****5678', hue: '#3172F0' },
+      { id: 'u2', nickname: '干饭小张', college: '商学院', verified: true, credit: 92, studentNoMasked: '24****53', phoneMasked: '159****2211', hue: '#B7791F' },
+      { id: 'u3', nickname: '跑腿老王', college: '教育学院', verified: true, credit: 94, studentNoMasked: '22****08', phoneMasked: '187****3344', hue: '#0A9F58' },
+      { id: 'u4', nickname: '学长阿凯', college: '艺术设计学院', verified: true, credit: 88, studentNoMasked: '21****66', phoneMasked: '135****7788', hue: '#D94838' }
     ],
     goods: [
       { id: 'g1', kind: 0, title: '高等数学(上)·同济第七版', desc: '大一上学期用书，无笔记无划线，附赠课后习题答案打印版。', price: 12, course: '高等数学', condition: 1, errand: null, sellerId: 'u1', timeText: t(3), wanted: false, reward: 0 },
@@ -197,12 +220,17 @@ function currentUser(req) {
 }
 
 function userView(u) {
-  return { id: u.id, nickname: u.nickname, college: u.college, verified: u.verified, credit: u.credit, studentNoMasked: u.studentNoMasked, hue: u.hue };
+  return { id: u.id, nickname: u.nickname, college: u.college, verified: u.verified, credit: u.credit, studentNoMasked: u.studentNoMasked, phoneMasked: u.phoneMasked || '', hue: u.hue };
 }
 
 function goodsView(g) {
   const seller = db.users.find((u) => u.id === g.sellerId);
   return { ...g, seller: seller ? userView(seller) : null };
+}
+
+// 实名判定：学生认证 + 手机号验证码核验均完成后，才允许发布/私聊等 UGC 行为
+function isRealnamed(u) {
+  return !!(u && u.verified && (u.phoneMasked || '').length > 0);
 }
 
 // ---------------- 路由 ----------------
@@ -226,13 +254,49 @@ async function handle(req, res) {
         return send(res, 200, { user: userView(exist) });
       }
     }
-    const u = { id: nextId('u'), nickname: '匿名同学', college: '', verified: false, credit: 90, studentNoMasked: '', hue: '#0A9F58' };
+    const u = { id: nextId('u'), nickname: '匿名同学', college: '', verified: false, credit: 90, studentNoMasked: '', phoneMasked: '', hue: '#0A9F58' };
     db.users.push(u);
     saveDb();
     return send(res, 200, { user: userView(u) });
   }
 
-  // 学生认证
+  // 发送短信验证码（实名核验第一步，服务端强制防刷）
+  if (p === '/api/auth/sms-code' && method === 'POST') {
+    const phone = String(body.phone || '').trim();
+    if (!/^1[3-9]\d{9}$/.test(phone)) {
+      return send(res, 400, { error: '请输入正确的11位手机号' });
+    }
+    const ip = req.socket.remoteAddress || 'unknown';
+    const now = Date.now();
+    // 防刷1：同一号码 60 秒内仅一条
+    const plist = pruneTs(smsSendLog.get(phone) || [], 24 * 3600 * 1000);
+    if (plist.length > 0 && now - plist[plist.length - 1] < SMS_GAP) {
+      return send(res, 429, { error: '发送太频繁，请60秒后再试' });
+    }
+    // 防刷2：同一号码每日上限
+    if (plist.length >= SMS_DAY_LIMIT) {
+      return send(res, 429, { error: '今日验证码发送已达上限，请明天再试' });
+    }
+    // 防刷3：同一 IP 每小时上限
+    const ilist = pruneTs(ipSendLog.get(ip) || [], 3600 * 1000);
+    if (ilist.length >= IP_HOUR_LIMIT) {
+      return send(res, 429, { error: '操作过于频繁，请稍后再试' });
+    }
+    const code = String(Math.floor(100000 + Math.random() * 900000));
+    smsCodes.set(phone, { code: code, exp: now + SMS_TTL });
+    plist.push(now);
+    smsSendLog.set(phone, plist);
+    ilist.push(now);
+    ipSendLog.set(ip, ilist);
+    sendSmsCode(phone, code);
+    const resp = { ok: true };
+    if (SMS_PROVIDER === 'mock') {
+      resp.devCode = code; // 仅调试模式返回，生产切换 aliyun 后不再下发
+    }
+    return send(res, 200, resp);
+  }
+
+  // 学生认证（含手机号验证码实名核验）
   if (p === '/api/auth/certify' && method === 'POST') {
     if (!me) {
       return send(res, 401, { error: '请先获取身份' });
@@ -240,6 +304,18 @@ async function handle(req, res) {
     const name = String(body.name || '').trim();
     const sno = String(body.studentNo || '').trim();
     const college = String(body.college || '').trim();
+    const phone = String(body.phone || '').trim();
+    const smsCode = String(body.smsCode || '').trim();
+    if (!/^1[3-9]\d{9}$/.test(phone)) {
+      return send(res, 400, { error: '请输入正确的11位手机号' });
+    }
+    const entry = smsCodes.get(phone);
+    if (!entry || entry.exp < Date.now()) {
+      return send(res, 400, { error: '验证码已过期，请重新获取' });
+    }
+    if (entry.code !== smsCode) {
+      return send(res, 400, { error: '验证码不正确' });
+    }
     if (name.length < 2) {
       return send(res, 400, { error: '请输入真实姓名' });
     }
@@ -252,7 +328,9 @@ async function handle(req, res) {
     me.verified = true;
     me.college = college;
     me.studentNoMasked = `${sno.substring(0, 2)}****${sno.substring(sno.length - 2)}`;
+    me.phoneMasked = `${phone.substring(0, 3)}****${phone.substring(7)}`;
     me.credit = Math.min(100, me.credit + 2);
+    smsCodes.delete(phone); // 验证码一次性使用
     saveDb();
     return send(res, 200, { user: userView(me) });
   }
@@ -323,8 +401,8 @@ async function handle(req, res) {
   }
 
   if (p === '/api/goods' && method === 'POST') {
-    if (!me.verified) {
-      return send(res, 403, { error: '完成学生认证后才能发布' });
+    if (!isRealnamed(me)) {
+      return send(res, 403, { error: '完成学生认证（含手机号验证）后才能发布' });
     }
     const g = {
       id: nextId('g'),
@@ -366,6 +444,9 @@ async function handle(req, res) {
   }
 
   if (p === '/api/sessions' && method === 'POST') {
+    if (!isRealnamed(me)) {
+      return send(res, 403, { error: '完成学生认证（含手机号验证）后才能私聊' });
+    }
     const peer = db.users.find((u) => u.id === body.peerId);
     if (!peer) {
       return send(res, 404, { error: '对方不存在' });
@@ -402,6 +483,9 @@ async function handle(req, res) {
     }
 
     if (method === 'POST' && action === '/messages') {
+      if (!isRealnamed(me)) {
+        return send(res, 403, { error: '完成学生认证（含手机号验证）后才能发送消息' });
+      }
       if (closed(s)) {
         return send(res, 409, { error: '当前会话无法发送消息' });
       }

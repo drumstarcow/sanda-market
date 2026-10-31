@@ -22,8 +22,8 @@ export struct DetailPage {
   }
 
   private contact(item: GoodsItem, firstText: string): void {
-    if (!store.me.verified) {
-      this.toast('完成学生认证后才能私聊');
+    if (!store.isRealnamed()) {
+      this.toast('完成学生认证（含手机号验证）后才能私聊');
       store.go('certify');
       return;
     }

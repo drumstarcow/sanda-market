@@ -293,9 +293,9 @@ export struct PublishPage {
   }
 
   build() {
-    if (!store.me.verified) {
+    if (!store.isRealnamed()) {
       Column({ space: 14 }) {
-        EmptyTip({ text: '完成学生认证后即可发布' })
+        EmptyTip({ text: '完成学生认证（含手机号验证）后即可发布' })
         Text('去认证')
           .fontSize(14)
           .fontWeight(FontWeight.Bold)

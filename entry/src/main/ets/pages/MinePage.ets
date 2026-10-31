@@ -6,6 +6,11 @@ import { Avatar, TagBadge, EmptyTip } from '../views/Widgets';
 
 @ComponentV2
 export struct MinePage {
+  // 进入"我的"时以服务端为准重拉用户状态（兜底：认证后任何页面缓存未同步的场景）
+  aboutToAppear(): void {
+    store.refreshUser();
+  }
+
   private toast(msg: string): void {
     this.getUIContext().getPromptAction().showToast({ message: msg, duration: 2000 });
   }
@@ -38,13 +43,13 @@ export struct MinePage {
                   .fontSize(17)
                   .fontWeight(FontWeight.Bold)
                   .fontColor(Theme.text)
-                if (store.me.verified) {
+                if (store.isRealnamed()) {
                   TagBadge({ label: '学生认证' })
                 } else {
                   TagBadge({ label: '未认证', fg: Theme.warn, bg: Theme.warnSoft })
                 }
               }
-              Text(store.me.verified
+              Text(store.isRealnamed()
                 ? `${store.me.college} · 学号 ${store.me.studentNoMasked}`
                 : '完成学生认证后可发布、接单、私聊')
                 .fontSize(12)
@@ -87,7 +92,7 @@ export struct MinePage {
           .width('100%')
           .padding({ top: 8 })
 
-          if (!store.me.verified) {
+          if (!store.isRealnamed()) {
             Text('立即完成学生认证')
               .fontSize(14)
               .fontWeight(FontWeight.Bold)
@@ -117,7 +122,7 @@ export struct MinePage {
             store.go('blocks');
           })
           Divider().color(Theme.line).height(1)
-          this.ActionRow('学生认证', store.me.verified ? '已认证' : '未认证', (): void => {
+          this.ActionRow('学生认证', store.isRealnamed() ? '已认证' : '未认证', (): void => {
             store.go('certify');
           })
           Divider().color(Theme.line).height(1)

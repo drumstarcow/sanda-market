@@ -4,8 +4,8 @@ import { common } from '@kit.AbilityKit';
 import { preferences } from '@kit.ArkData';
 import {
   BlacklistResp, CertifyBody, ChatStartBody, GoodsListResp, MsgBody, PublishBody, ReportBody,
-  ReportListResp, ReportResp, ServerErrand, ServerGoods, ServerMessage, ServerReport,
-  ServerSession, ServerUser, SessionListResp, SessionResp, UserResp, Api
+  ReportListResp, ReportResp, SendCodeBody, SendCodeResp, ServerErrand, ServerGoods, ServerMessage,
+  ServerReport, ServerSession, ServerUser, SessionListResp, SessionResp, UserResp, Api
 } from './Api';
 import {
   BookCondition, ChatMessage, ChatSession, ErrandInfo, ErrandType, FeeRow, GoodsItem,
@@ -51,6 +51,7 @@ function mapUser(su: ServerUser): User {
   u.verified = su.verified;
   u.credit = su.credit;
   u.studentNoMasked = su.studentNoMasked;
+  u.phoneMasked = su.phoneMasked;
   u.hue = su.hue;
   return u;
 }
@@ -320,6 +321,7 @@ export class AppStore {
     nu.verified = u.verified;
     nu.credit = u.credit;
     nu.studentNoMasked = u.studentNoMasked;
+    nu.phoneMasked = u.phoneMasked;
     nu.hue = u.hue;
     this.me = nu;
     this.cacheUser(u);
@@ -336,11 +338,30 @@ export class AppStore {
         u.verified = su.verified;
         u.credit = su.credit;
         u.studentNoMasked = su.studentNoMasked;
+        u.phoneMasked = su.phoneMasked;
         u.hue = su.hue;
         return;
       }
     }
     this.users.push(mapUser(su));
+  }
+
+  // 从服务端重拉当前用户：认证状态以服务端为唯一真相源（兜底修复"认证后界面未即时刷新"）
+  async refreshUser(): Promise<void> {
+    if (Api.userId.length === 0) {
+      return;
+    }
+    try {
+      const r = await Api.getUser(Api.userId);
+      this.applyUser(r.user);
+      this.offline = false;
+    } catch (e) {
+    }
+  }
+
+  // 实名判定（本地缓存视图；关键操作前会先 refreshUser 校准）
+  isRealnamed(): boolean {
+    return this.me.verified && this.me.phoneMasked.length > 0;
   }
 
   // 用服务端会话视图更新本地会话（保持对象引用稳定，保证已打开的聊天页响应式刷新）
@@ -413,8 +434,33 @@ export class AppStore {
     this.go('chat');
   }
 
-  // ---------------- 认证 ----------------
-  async certify(name: string, studentNo: string, college: string): Promise<string> {
+  // ---------------- 认证（含手机号验证码实名核验） ----------------
+  async sendCode(phone: string): Promise<string> {
+    const p = phone.trim();
+    if (!/^1[3-9]\d{9}$/.test(p)) {
+      return '请输入正确的11位手机号';
+    }
+    try {
+      const body: SendCodeBody = { phone: p };
+      const resp = await Api.sendCode(body);
+      if (resp.devCode !== undefined && resp.devCode.length > 0) {
+        // 调试模式：服务端直接回传验证码（接入真实短信后不再下发）
+        return `验证码已发送（调试码 ${resp.devCode}）`;
+      }
+      return '';
+    } catch (e) {
+      return errText(e);
+    }
+  }
+
+  async certify(name: string, studentNo: string, college: string, phone: string, smsCode: string): Promise<string> {
+    const p = phone.trim();
+    if (!/^1[3-9]\d{9}$/.test(p)) {
+      return '请输入正确的11位手机号';
+    }
+    if (smsCode.trim().length !== 6) {
+      return '请输入6位验证码';
+    }
     if (name.trim().length < 2) {
       return '请输入真实姓名';
     }
@@ -426,19 +472,27 @@ export class AppStore {
       return '请选择所在学院';
     }
     try {
-      const body: CertifyBody = { name: name.trim(), studentNo: sno, college: college };
+      const body: CertifyBody = { name: name.trim(), studentNo: sno, college: college, phone: p, smsCode: smsCode.trim() };
       const resp = await Api.certify(body);
       this.applyUser(resp.user);
       return '';
     } catch (e) {
+      // 兜底：请求超时但服务端可能已落库成功，重拉用户状态校准 UI
+      await this.refreshUser();
+      if (this.isRealnamed()) {
+        return '';
+      }
       return errText(e);
     }
   }
 
   // ---------------- 发布 ----------------
   async publish(item: GoodsItem): Promise<string> {
-    if (!this.me.verified) {
-      return '完成学生认证后才能发布';
+    if (!this.isRealnamed()) {
+      await this.refreshUser(); // 兜底：本地缓存未同步时以服务端为准
+    }
+    if (!this.isRealnamed()) {
+      return '完成学生认证（含手机号验证）后才能发布';
     }
     const body: PublishBody = {
       kind: item.kind,
@@ -467,6 +521,12 @@ export class AppStore {
     if (this.isBlocked(peerId)) {
       return '你已拉黑该用户，解除后才能再次沟通';
     }
+    if (!this.isRealnamed()) {
+      await this.refreshUser(); // 兜底：本地缓存未同步时以服务端为准
+    }
+    if (!this.isRealnamed()) {
+      return '完成学生认证（含手机号验证）后才能私聊';
+    }
     const body: ChatStartBody = { peerId: peerId, goodsId: goodsId, firstText: firstText };
     try {
       const rs = await Api.createSession(body);
@@ -485,6 +545,12 @@ export class AppStore {
     }
     if (s.state !== SessionState.Active) {
       return '当前会话无法发送消息';
+    }
+    if (!this.isRealnamed()) {
+      await this.refreshUser();
+    }
+    if (!this.isRealnamed()) {
+      return '完成学生认证（含手机号验证）后才能发送消息';
     }
     try {
       const mb: MsgBody = { text: raw };

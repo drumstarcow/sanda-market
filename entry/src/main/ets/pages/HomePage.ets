@@ -70,9 +70,9 @@ export struct HomePage {
           .borderRadius(10)
         }
 
-        if (!store.me.verified) {
+        if (!store.isRealnamed()) {
           Row({ space: 8 }) {
-            Text('未完成学生认证：发布、接单、私聊受限')
+            Text('未完成学生认证（含手机号验证）：发布、接单、私聊受限')
               .fontSize(12)
               .fontColor(Theme.warn)
               .layoutWeight(1)
