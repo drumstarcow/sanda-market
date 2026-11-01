@@ -10,7 +10,7 @@ import { Theme } from '../common/Theme';
 import { Chip, PageHeader } from '../views/Widgets';
 
 // 阿里云号码认证方案密钥（控制台-认证方案管理-方案详情）
-const PNVS_SECRET_KEY: string = '2+r2dP+PHJAs/CtOzFuLSjz/M1Zb2rAHWgEv58+vVqm6GZ3DRW3/hh+P2gGd9bkVhqBkBRG+yqOA3wCQrJeuWhpVk8Z/8BUP8SOYYpONBOllw3k+g8yogIgahwwhrNCNYzsUkN+0Wo5JoicBIIZUwjqZsNeyIOzlMWo205evJbUuMk/MM/hg87UBHV9Gw6ycgiFIBuq4XwcI/aiy2lenZi7SUwjOBbfxb97Ars+L/2U8GkhYbFwfE1e7ZQm4sCW/XPIPxJWRzTOHY4zsVhfZanFP/CNxvVP7uyp/mBLHt0I7wHrkACWf74CDqrs01sWXUBW+Xj/kYEZqKof1IVjVOMheFMJB8cfQ+rC8XZA3gVEMzK1mrIg/8uvzP7amYRvd';
+const PNVS_SECRET_KEY: string = '2+r2dP+PHJCThZuY+5cYdJXI+sIVhdkQ1W818Ygjh9A5s/Zk1vAUKBVLYephKok3wHzdDulDeBPTdij6UX7IZaFozMxIIju06VATk91rAa4i4iLVfMo3ZRQeA0TAm9v0vO42K0WIaRSOIBstjn9/oHi7TodKo4T16AknFnF/S3oqjzCRt2nengE6A1wh+K8be2bAG3wVkbQfpwEQgYfe3hrdpEmokIdrvYJDME+//z7QCsw9pcVWBKXywouDi52hMl41O11lcdPfli7KZCy4SsDh5wnPiQSGHCZt81uc94adMRXxd7KjZZpnztTzZai4dcPzhXFujX6qcy4m/byou0IzlAI47wMc+/fpao8qrqIDsizowJEyOdHz2rOPnLpN';
 
 // 运营商校验回调桥接：SDK 接口回调 → 页面处理
 class PnvsTokenListener implements TokenResultListener {
