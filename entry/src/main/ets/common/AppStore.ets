@@ -576,17 +576,6 @@ export class AppStore {
     }
   }
 
-  // 演示：模拟对方发来含联系方式的消息（服务端负责打码）
-  async demoMessage(sessionId: string): Promise<string> {
-    try {
-      await Api.demoMessage(sessionId);
-      await this.refreshSession(sessionId);
-      return '';
-    } catch (e) {
-      return errText(e);
-    }
-  }
-
   // ---------------- 拒聊 / 拉黑 / 举报 ----------------
   async refuseSession(sessionId: string): Promise<string> {
     try {

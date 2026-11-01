@@ -256,10 +256,6 @@ export class Api {
     return Api.post<MsgBody, OkResp>(`/api/sessions/${id}/messages`, body);
   }
 
-  static async demoMessage(id: string): Promise<OkResp> {
-    return Api.postEmpty<OkResp>(`/api/sessions/${id}/demo`);
-  }
-
   static async refuse(id: string): Promise<SessionResp> {
     return Api.postEmpty<SessionResp>(`/api/sessions/${id}/refuse`);
   }

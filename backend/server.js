@@ -557,7 +557,7 @@ async function handle(req, res) {
     return send(res, 200, { session: sessionView(s, me.id) });
   }
 
-  const mSess = p.match(/^\/api\/sessions\/([^/]+)(\/messages|\/refuse|\/resume|\/demo)?$/);
+  const mSess = p.match(/^\/api\/sessions\/([^/]+)(\/messages|\/refuse|\/resume)?$/);
   if (mSess) {
     const s = findSession(mSess[1]);
     if (!s || (s.aId !== me.id && s.bId !== me.id)) {
@@ -589,17 +589,6 @@ async function handle(req, res) {
       }
       saveDb();
       return send(res, 200, { messages: [msg, ...tips] });
-    }
-
-    if (method === 'POST' && action === '/demo') {
-      if (closed(s)) {
-        return send(res, 409, { error: '当前会话无法接收消息' });
-      }
-      const raw = '我是校外代购，加我微信 sanda_shop99 或打 13812345678 付款更快～';
-      const msg = appendMsg(s, peerIdOf(s, me.id), maskText(raw), 1);
-      const tip = appendMsg(s, 'system', `对方消息中的联系方式（${hintOf(raw)}）已自动隐藏。警惕校外人员私下转账要求，谨防诈骗。`, 2);
-      saveDb();
-      return send(res, 200, { messages: [msg, tip] });
     }
 
     if (method === 'POST' && action === '/refuse') {
